@@ -87,6 +87,11 @@ export function ModelSelect(
   const menuRef = useRef<HTMLDivElement | null>(null)
   const groupsRef = useRef<HTMLDivElement | null>(null)
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([])
+  // A pointer highlight lands on a row the user can already see; scrolling it
+  // into view only shifts unrelated rows under the pinned provider heading,
+  // where their labels show through the translucent header. Keyboard and
+  // query highlights still keep the active row in view.
+  const pointerHighlightedIndex = useRef<number | null>(null)
   const id = useId()
   const anchorStyle: CSSProperties & Record<'--dsh-model-anchor', string> = {
     '--dsh-model-anchor': `--dsh-model-${id.replaceAll(':', '')}`,
@@ -171,6 +176,7 @@ export function ModelSelect(
     if (!showSearch) {
       setQuery('')
       setHighlightedIndex(null)
+      pointerHighlightedIndex.current = null
     }
   }, [showSearch])
 
@@ -209,9 +215,15 @@ export function ModelSelect(
   }, [available, open, pane, filteredGroups])
 
   useLayoutEffect(() => {
-    if (open && pane === 'model' && activeModelIndex >= 0) {
-      itemRefs.current[activeModelIndex]?.scrollIntoView({ block: 'nearest' })
+    if (!open || pane !== 'model' || activeModelIndex < 0) {
+      pointerHighlightedIndex.current = null
+      return
     }
+    // The marker outlives this effect run so a repeated render of the same
+    // pointer highlight cannot scroll; any other highlight clears it.
+    if (pointerHighlightedIndex.current === activeModelIndex) return
+    pointerHighlightedIndex.current = null
+    itemRefs.current[activeModelIndex]?.scrollIntoView({ block: 'nearest' })
   }, [open, pane, activeModelIndex, visibleModels])
 
   if (!available) return null
@@ -221,6 +233,7 @@ export function ModelSelect(
     triggerRef.current?.focus()
     setQuery('')
     setHighlightedIndex(null)
+    pointerHighlightedIndex.current = null
     if (currentChoice === undefined) paneFocus.current = 'drill'
     setPane(currentChoice === undefined ? 'model' : 'root')
     setOpen(true)
@@ -228,6 +241,7 @@ export function ModelSelect(
   }
 
   const changeQuery = (next: string): void => {
+    pointerHighlightedIndex.current = null
     setQuery(next)
     setHighlightedIndex(0)
   }
@@ -246,6 +260,7 @@ export function ModelSelect(
   const drill = (next: Pane): void => {
     setQuery('')
     setHighlightedIndex(null)
+    pointerHighlightedIndex.current = null
     paneFocus.current = 'drill'
     setPane(next)
   }
@@ -587,8 +602,9 @@ export function ModelSelect(
                               css.option, css.modelOption, selected && css.selected, index === activeModelIndex && css.optionActive,
                             )}
                             onMouseMove={busy || index === activeModelIndex ? undefined : () => {
+                              pointerHighlightedIndex.current = index
                               if (showSearch) setHighlightedIndex(index)
-                              else itemRefs.current[index]?.focus()
+                              else itemRefs.current[index]?.focus({ preventScroll: true })
                             }}
                             key={model.id}
                             title={model.name}

@@ -83,8 +83,8 @@ async function headingMaterial(viewport: Locator) {
         body.toggleAttribute('data-ds-dark-theme', dark)
         const style = getComputedStyle(heading)
         return {
-          fill: style.backgroundColor, radius: style.borderRadius, position: style.position,
-          font: style.fontSize, weight: style.fontWeight, padding: style.padding,
+          fill: style.backgroundColor, blur: style.backdropFilter, radius: style.borderRadius,
+          position: style.position, font: style.fontSize, weight: style.fontWeight, padding: style.padding,
         }
       })
     } finally {
@@ -194,6 +194,7 @@ describe.skipIf(webSnapshotMode() === 'record').each([
         expect(material.map(style => style.fill)).toEqual(['rgba(248, 249, 250, 0.94)', 'rgba(48, 49, 54, 0.94)'])
         for (const style of material) {
           expect(style).toMatchObject({ position: 'sticky', font: '11px', weight: '500', padding: '4px 7px 2px' })
+          expect(style.blur).toBe('blur(8px)')
         }
         if (entry === 'button') buttonMaterial = material
         else expect(material).toEqual(buttonMaterial)

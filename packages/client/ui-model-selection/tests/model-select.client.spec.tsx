@@ -866,9 +866,11 @@ describe('ModelSelect catalog size', () => {
     fireEvent.click(screen.getByRole('button', { name: /选择模型/ }))
     fireEvent.click(screen.getByRole('menuitem', { name: /^模型/ }))
     const row = screen.getByRole('menuitemradio', { name: 'Model 3' })
+    scrollIntoView.mockClear()
     fireEvent.mouseMove(row)
     expect(document.activeElement).toBe(row)
     expect(row.hasAttribute('data-highlighted')).toBe(true)
+    expect(scrollIntoView).not.toHaveBeenCalled()
     expect(fireEvent.keyDown(row, { key: 'Tab' })).toBe(false)
     expect(select).toHaveBeenCalledWith({ provider: 'deepseek-official', model: 'model-3' })
     await waitFor(() => { expect(screen.queryByRole('group', { name: '模型与推理等级' })).toBeNull() })
@@ -1048,6 +1050,21 @@ describe('ModelSelect search', () => {
     fireEvent.keyDown(reopened, { key: 'Tab' })
     await waitFor(() => { expect(screen.queryByRole('menu')).toBeNull() })
     expect(select).toHaveBeenCalledWith({ provider: 'other', model: 'gemini' })
+  })
+
+  it('highlights a hovered row without scrolling the catalog', () => {
+    const directory = createSnapshotStore(state({ groups: modelGroups(6) }))
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available directory={directory} load={vi.fn()}
+      resolveText={resolveText} select={vi.fn()} t={t} />)
+    fireEvent.click(screen.getByRole('button', { name: /选择模型/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /模型/ }))
+    const rows = screen.getAllByRole('menuitemradio')
+    scrollIntoView.mockClear()
+    fireEvent.mouseMove(rows[4]!)
+    expect(rows[4]!.hasAttribute('data-highlighted')).toBe(true)
+    expect(scrollIntoView).not.toHaveBeenCalled()
+    fireEvent.keyDown(screen.getByRole('searchbox'), { key: 'ArrowDown' })
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' })
   })
 })
 

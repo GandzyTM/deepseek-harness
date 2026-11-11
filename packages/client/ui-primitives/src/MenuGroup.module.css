@@ -30,6 +30,9 @@
 
 .heading[data-stuck] {
   background: var(--dsw-alias-menu-group-header-fill);
+  /* Rows scroll beneath the pinned heading; blur them so their labels cannot
+     read through the translucent fill as duplicated text. */
+  backdrop-filter: blur(8px);
 }
 
 :global(html:not([data-platform='darwin'])) .heading {
